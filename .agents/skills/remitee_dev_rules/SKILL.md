@@ -8,7 +8,7 @@ description: Guidelines and patterns for the Remitee Treasury Transfers API chal
 These guidelines must be followed strictly during all phases of code development for this project.
 
 ## 1. Domain Modeling & DDD Constraints
-- **Pure Domain**: The `Challenge.Domain` layer must have ZERO external dependencies (no Entity Framework Core, no MediatR, no third-party libraries).
+- **Pure Domain**: The `Challenge.Domain` layer must have ZERO external dependencies (no Entity Framework Core, no DispatchR, no third-party libraries).
 - **Aggregates and Entities**: Define rich domain models. Domain state changes must only happen through methods on the entities (e.g. `Account.Debit(Money money)`, `Account.Credit(Money money)`), not by direct setters.
 - **Value Objects**: Money representation, Currency, and Account Status should be modeled as Value Objects or strongly typed records/classes with proper validations to avoid primitive obsession.
 - **Domain Events**: Changes in aggregates that trigger side-effects (e.g. publishing transaction history) should register Domain Events (e.g. `TransferCompletedDomainEvent`) in the entity itself, to be dispatched by the Unit of Work when saving.
@@ -31,7 +31,7 @@ These guidelines must be followed strictly during all phases of code development
 - **Result Object**: Use a generic `Result<T>` or `Result` pattern to return success or error states from the domain and application handlers back to the API layer.
 - **HTTP Mapping**: The API layer maps the `Result` to the appropriate HTTP status code and response body `{ "code": "ErrorCode", "message": "User-friendly description" }`.
 
-## 4. CQRS and MediatR
+## 4. CQRS and DispatchR
 - **Separation of Concerns**: Keep Commands and Queries completely separate.
 - **Handlers**: Application handlers should contain the business logic workflow, coordinating the Domain repositories, checking idempotency, and committing the Unit of Work.
 - **Immutability**: All Command and Query request DTOs must be immutable (e.g., using C# positional `record`s).

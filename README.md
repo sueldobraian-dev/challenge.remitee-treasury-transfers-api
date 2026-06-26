@@ -14,9 +14,9 @@ Aunque el enunciado del challenge sugiere la posibilidad de usar un almacenamien
    - Aislamiento de las reglas de negocio en una capa de **Dominio** pura, libre de dependencias tecnológicas.
    - Uso de **Entidades**, **Agregados** y **Objetos de Valor (Value Objects)** para modelar la semántica financiera de manera estricta.
    - Ejecución de validaciones y lógica de negocio dentro de la frontera del dominio, evitando "modelos anémicos".
-2. **CQRS con MediatR:**
+2. **CQRS con DispatchR:**
    - Separación estricta de las operaciones de escritura (Commands) y lectura (Queries) mediante un flujo desacoplado.
-   - Inicio de transferencias mediante un `CreateTransferCommand`, el cual es procesado por un handler específico que coordina la transacción de base de datos.
+   - Procesamiento de transferencias a través de un `CreateTransferCommand` manejado por DispatchR, coordinando la transacción de base de datos de manera eficiente.
 3. **Persistencia Real con SQL Server (Dockerizado):**
    - Garantía de **ACID** (Atomicidad, Consistencia, Aislamiento y Durabilidad) mediante el uso de transacciones SQL Server reales administradas con Entity Framework Core.
    - Implementación del patrón **Repository** y **Unit of Work** para asegurar que los débitos, créditos e inserciones del Ledger ocurran de forma atómica.
@@ -31,8 +31,8 @@ Aunque el enunciado del challenge sugiere la posibilidad de usar un almacenamien
 * **Runtime & Framework:** .NET 10 / Minimal APIs
 * **Base de Datos:** Microsoft SQL Server 2022
 * **Mapeador ORM:** Entity Framework Core
-* **Patrón de Comportamiento:** MediatR (CQRS)
-* **Documentación:** OpenAPI / Swagger UI
+* **Patrón de Comportamiento:** DispatchR (CQRS)
+* **Documentación:** OpenAPI nativo (.NET 10)
 * **Contenedores y Orquestación:** Docker & Docker Compose
 * **Pruebas:** xUnit, FluentAssertions y Moq
 
@@ -48,9 +48,9 @@ El código de la solución se organiza dentro del directorio `src/` en las sigui
  ├── 📂 docs                      # Documentación profunda y reglas del negocio
  ├── 📂 src
  │    ├── 📂 Challenge.Domain     # Entidades, Value Objects, Domain Events y abstracción de repositorios.
- │    ├── 📂 Challenge.Application# Casos de uso (Commands/Queries), validadores y MediatR handlers.
+ │    ├── 📂 Challenge.Application# Casos de uso (Commands/Queries), validadores y handlers de DispatchR.
  │    ├── 📂 Challenge.Infrastructure# Persistencia (EF Core, DbContext), Repositorios y Unit of Work.
- │    └── 📂 Challenge.API        # Capa de presentación (Minimal APIs Endpoints, Swagger y Dockerfile).
+ │    └── 📂 Challenge.API        # Capa de presentación (Minimal APIs Endpoints, OpenAPI nativo y Dockerfile).
  ├── docker-compose.yml           # Definición de servicios para API y SQL Server.
  └── Challenge.sln                # Solución de C# (.NET)
 ```
@@ -75,12 +75,12 @@ Este comando descargará la imagen de SQL Server, compilará el contenedor de la
 
 ---
 
-## 🔍 Cómo probar la API (Swagger UI)
+## 🔍 Cómo probar la API (OpenAPI)
 
 Una vez que el contenedor esté corriendo, la API estará expuesta en el puerto `8080` de tu host local.
 
-* **Swagger UI:** Abre en tu navegador la URL **[http://localhost:8080/swagger](http://localhost:8080/swagger)**.
-* Desde allí podrás visualizar y probar directamente el endpoint `POST /transfers` ingresando el JSON con los datos del request.
+* **OpenAPI Spec:** Se puede acceder al documento de especificación OpenAPI en **[http://localhost:8080/openapi/v1.json](http://localhost:8080/openapi/v1.json)**.
+* **Prueba de Endpoints:** Se puede interactuar con el endpoint `POST /transfers` utilizando clientes HTTP tradicionales (tales como Postman, cURL, o herramientas de desarrollo locales) o interfaces interactivas compatibles con OpenAPI.
 
 ### Ejemplo de Request (Con Conversión FX)
 
