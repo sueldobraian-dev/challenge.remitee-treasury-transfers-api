@@ -37,9 +37,6 @@ public static class BootstrapExtensions
 
     public static async Task ConfigureAppPipelineAsync(this WebApplication app)
     {
-        // Register exception handling middleware at the beginning of the pipeline
-        app.UseMiddleware<Middleware.ExceptionHandlingMiddleware>();
-
         // 1. Run automatic DB migrations and seed initial accounts
         try
         {
