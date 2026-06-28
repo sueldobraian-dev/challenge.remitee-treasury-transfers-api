@@ -1,4 +1,4 @@
-namespace Challenge.Domain.ValueObjects;
+namespace Challenge.Domain.Entities.Accounts;
 
 public enum AccountStatus
 {

@@ -1,4 +1,4 @@
-using Challenge.Domain.Aggregates;
+using Challenge.Domain.Entities.Accounts;
 using Challenge.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 

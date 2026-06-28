@@ -1,5 +1,4 @@
-using Challenge.Domain.Aggregates;
-using Challenge.Domain.ValueObjects;
+using Challenge.Domain.Entities.Accounts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 

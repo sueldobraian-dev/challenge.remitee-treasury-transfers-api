@@ -1,4 +1,4 @@
-using Challenge.Domain.Aggregates;
+using Challenge.Domain.Entities.Accounts;
 
 namespace Challenge.Domain.Repositories;
 

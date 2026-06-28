@@ -1,8 +1,8 @@
 ﻿using Challenge.Application.Common.DispatchR;
 using Challenge.Domain.Entities;
+using Challenge.Domain.Entities.Accounts;
 using Challenge.Domain.Exceptions;
 using Challenge.Domain.Repositories;
-using Challenge.Domain.ValueObjects;
 
 namespace Challenge.Application.Features.Transfers.Commands;
 

@@ -1,6 +1,4 @@
-using Challenge.Domain.ValueObjects;
-
-namespace Challenge.Domain.Aggregates;
+namespace Challenge.Domain.Entities.Accounts;
 
 public class Account
 {
