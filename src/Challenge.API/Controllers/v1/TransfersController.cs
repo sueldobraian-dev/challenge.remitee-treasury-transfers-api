@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Challenge.API.Controllers.v1;
 
 [Route("transfers")]
-public class TransfersController : ApiControllerBase
+public class TransfersController : ControllerBase
 {
     private readonly IDispatcher _dispatcher;
 
