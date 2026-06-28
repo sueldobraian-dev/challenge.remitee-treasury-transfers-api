@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Challenge.Infrastructure.Persistence;
 using Challenge.InfrastructureBootstrap.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
