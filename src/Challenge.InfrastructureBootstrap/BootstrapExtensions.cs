@@ -1,10 +1,8 @@
-using System;
-using System.Threading.Tasks;
+using Challenge.Infrastructure.Persistence;
+using Challenge.InfrastructureBootstrap.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Challenge.Infrastructure.Persistence;
-using Challenge.InfrastructureBootstrap.DependencyInjection;
 
 namespace Challenge.InfrastructureBootstrap;
 
@@ -21,8 +19,17 @@ public static class BootstrapExtensions
         // 3. Register Controllers support
         services.AddControllers();
 
-        // 4. Configure native OpenAPI (.NET 10 style)
-        services.AddOpenApi();
+        // 4. Configure native OpenAPI (.NET 10 style) with custom metadata
+        services.AddOpenApi(options =>
+        {
+            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            {
+                document.Info.Title = "Treasury Transfers API";
+                document.Info.Version = "v1";
+                document.Info.Description = "API for handling atomic and idempotent internal treasury transfers.";
+                return System.Threading.Tasks.Task.CompletedTask;
+            });
+        });
 
         return services;
     }
