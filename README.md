@@ -50,10 +50,10 @@ El código de la solución se organiza dentro del directorio `src/` en las sigui
  │    ├── 📂 Challenge.Domain     # Entidades, Value Objects, Domain Events y abstracción de repositorios.
  │    ├── 📂 Challenge.Application# Casos de uso (Commands/Queries), validadores y handlers de DispatchR.
  │    ├── 📂 Challenge.Infrastructure# Persistencia (EF Core, DbContext), Repositorios y Unit of Work.
- │    ├── 📂 Challenge.InfrastructureBootstrap # Orquestación del bootstrap de DI, pipeline y inicialización.
+ │    ├── 📂 Challenge.Infrastructure.Bootstrap # Orquestación del bootstrap de DI, pipeline y inicialización.
  │    └── 📂 Challenge.API        # Capa de presentación (Controladores, OpenAPI nativo y Dockerfile).
  ├── docker-compose.yml           # Definición de servicios para API y SQL Server.
- └── Challenge.slnx               # Solución de C# (.NET)
+ └── Challenge.TreasuryTransfers.slnx  # Solución de C# (.NET)
 ```
 
 ---
