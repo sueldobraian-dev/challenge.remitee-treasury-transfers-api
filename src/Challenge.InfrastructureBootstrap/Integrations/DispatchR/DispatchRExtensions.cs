@@ -1,5 +1,7 @@
 using System.Reflection;
 using Challenge.Application.Common.DispatchR;
+using Challenge.InfrastructureBootstrap.Integrations.DispatchR;
+using Challenge.InfrastructureBootstrap.Integrations.DispatchR.Behaviors;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Challenge.InfrastructureBootstrap.Integrations.DispatchR;
@@ -8,7 +10,9 @@ public static class DispatchRExtensions
 {
     public static IServiceCollection AddDispatchR(this IServiceCollection services, Assembly assembly)
     {
+        services.AddHttpContextAccessor();
         services.AddScoped<IDispatcher, Dispatcher>();
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
 
         var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)

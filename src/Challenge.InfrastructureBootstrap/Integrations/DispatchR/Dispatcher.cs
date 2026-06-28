@@ -1,4 +1,5 @@
 using Challenge.Application.Common.DispatchR;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Challenge.InfrastructureBootstrap.Integrations.DispatchR;
 
@@ -24,13 +25,27 @@ public class Dispatcher : IDispatcher
             throw new InvalidOperationException($"No handler of type {handlerType.Name} was registered for request {requestType.Name}.");
         }
 
-        var method = handlerType.GetMethod("HandleAsync");
-        if (method == null)
+        // Obtener todos los pipeline behaviors registrados para la petición/respuesta
+        var behaviorType = typeof(IPipelineBehavior<,>).MakeGenericType(requestType, typeof(TResponse));
+        var behaviors = _serviceProvider.GetServices(behaviorType);
+
+        RequestHandlerDelegate<TResponse> next = () =>
         {
-            throw new InvalidOperationException($"HandleAsync method not found on handler type {handlerType.Name}.");
+            var method = handlerType.GetMethod("HandleAsync");
+            if (method == null)
+            {
+                throw new InvalidOperationException($"HandleAsync method not found on handler type {handlerType.Name}.");
+            }
+            return (Task<TResponse>)method.Invoke(handler, new object[] { request, cancellationToken })!;
+        };
+
+        // Encadenar los behaviors en orden inverso para su correcta ejecución
+        foreach (var behavior in behaviors.Cast<dynamic>().Reverse())
+        {
+            var currentNext = next;
+            next = () => behavior.HandleAsync((dynamic)request, currentNext, cancellationToken);
         }
 
-        var resultTask = (Task<TResponse>)method.Invoke(handler, new object[] { request, cancellationToken })!;
-        return await resultTask;
+        return await next();
     }
 }
