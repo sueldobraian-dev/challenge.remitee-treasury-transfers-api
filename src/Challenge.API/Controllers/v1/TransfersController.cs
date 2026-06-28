@@ -1,9 +1,15 @@
+using Asp.Versioning;
 using Challenge.Application.Features.Transfers.Commands;
 using Challenge.InfrastructureBootstrap.Integrations.DispatchR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Challenge.API.Controllers.v1;
 
+/// <summary>
+/// API para operaciones de tesorería (transferencias internas).
+/// </summary>
+[ApiController]
+[ApiVersion("1.0")]
 [Route("transfers")]
 public class TransfersController : ControllerBase
 {
