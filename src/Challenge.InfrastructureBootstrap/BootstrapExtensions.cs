@@ -1,8 +1,10 @@
+using System.Threading.Tasks;
 using Challenge.Infrastructure.Persistence;
 using Challenge.InfrastructureBootstrap.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Scalar.AspNetCore;
 
 namespace Challenge.InfrastructureBootstrap;
 
@@ -27,7 +29,7 @@ public static class BootstrapExtensions
                 document.Info.Title = "Treasury Transfers API";
                 document.Info.Version = "v1";
                 document.Info.Description = "API for handling atomic and idempotent internal treasury transfers.";
-                return System.Threading.Tasks.Task.CompletedTask;
+                return Task.CompletedTask;
             });
         });
 
@@ -52,7 +54,10 @@ public static class BootstrapExtensions
         // 2. Enable native OpenAPI JSON endpoint
         app.MapOpenApi();
 
-        // 3. Map Controller endpoints
+        // 3. Map Scalar interactive API reference UI (accessible at /scalar/v1)
+        app.MapScalarApiReference();
+
+        // 4. Map Controller endpoints
         app.MapControllers();
     }
 }
