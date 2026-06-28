@@ -8,7 +8,7 @@ public static class DispatchRExtensions
 {
     public static IServiceCollection AddDispatchR(this IServiceCollection services, Assembly assembly)
     {
-        services.AddSingleton<IDispatcher, Dispatcher>();
+        services.AddScoped<IDispatcher, Dispatcher>();
 
         var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)
