@@ -14,7 +14,6 @@ public record Money
             throw new ArgumentException("Amount cannot be negative.", nameof(amount));
         }
 
-        // Validate decimal precision
         if (decimal.Round(amount, currency.Decimals, MidpointRounding.ToEven) != amount)
         {
             throw new ArgumentException($"Amount {amount} has invalid decimal precision for currency {currency.Code}. Expected {currency.Decimals} decimals.", nameof(amount));
@@ -60,7 +59,6 @@ public record Money
         }
 
         var rawAmount = Amount * multiplier;
-        // Banker's Rounding (MidpointRounding.ToEven) is applied to ensure no statistical bias
         var roundedAmount = Math.Round(rawAmount, targetCurrency.Decimals, MidpointRounding.ToEven);
         return new Money(roundedAmount, targetCurrency);
     }

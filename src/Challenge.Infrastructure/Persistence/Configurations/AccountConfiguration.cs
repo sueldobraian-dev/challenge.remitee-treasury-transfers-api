@@ -30,7 +30,6 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasMaxLength(20)
             .IsRequired();
 
-        // Optimistic Concurrency check
         builder.Property(a => a.Version)
             .IsRowVersion()
             .IsRequired();

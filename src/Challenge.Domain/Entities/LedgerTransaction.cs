@@ -12,7 +12,6 @@ public class LedgerTransaction
     public string Status { get; private set; } = "COMPLETED";
     public DateTimeOffset CreatedAt { get; private set; }
 
-    // Constructor for EF Core
     private LedgerTransaction() { }
 
     public LedgerTransaction(

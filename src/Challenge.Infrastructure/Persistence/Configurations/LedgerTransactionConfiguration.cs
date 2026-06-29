@@ -15,7 +15,6 @@ public class LedgerTransactionConfiguration : IEntityTypeConfiguration<LedgerTra
         builder.Property(t => t.OperationId)
             .IsRequired();
 
-        // Idempotency: unique index on OperationId
         builder.HasIndex(t => t.OperationId)
             .IsUnique();
 

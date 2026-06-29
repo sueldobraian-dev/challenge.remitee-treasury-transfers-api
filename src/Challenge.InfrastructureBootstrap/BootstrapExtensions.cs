@@ -14,16 +14,9 @@ public static class BootstrapExtensions
 {
     public static IServiceCollection AddAppServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // 1. Register Application services (scanning command handlers for DispatchR)
         services.AddApplicationServices();
-
-        // 2. Register Infrastructure services (DbContext, repositories, Unit of Work)
         services.AddInfrastructureServices(configuration);
-
-        // 3. Register Controllers support
         services.AddControllers();
-
-        // 4. Configure API Versioning (query string based: ?api-version=1.0)
         services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -38,7 +31,6 @@ public static class BootstrapExtensions
             options.SubstituteApiVersionInUrl = false;
         });
 
-        // 4. Configure native OpenAPI (.NET 10 style) with custom metadata
         services.AddOpenApi(options =>
         {
             options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -55,7 +47,6 @@ public static class BootstrapExtensions
 
     public static async Task ConfigureAppPipelineAsync(this WebApplication app)
     {
-        // 1. Run automatic DB migrations and seed initial accounts
         try
         {
             await DbMigrator.MigrateAndSeedAsync(app.Services);
@@ -65,7 +56,6 @@ public static class BootstrapExtensions
             Console.WriteLine($"An error occurred during database migration: {ex.Message}");
         }
 
-        // 2. Validate API Version query parameter (only support 1.0 / 1)
         app.Use(async (context, next) =>
         {
             if (context.Request.Query.TryGetValue("api-version", out var versionValues))
@@ -96,13 +86,8 @@ public static class BootstrapExtensions
             await next();
         });
 
-        // 3. Enable native OpenAPI JSON endpoint
         app.MapOpenApi();
-
-        // 4. Map Scalar interactive API reference UI (accessible at /scalar/v1)
         app.MapScalarApiReference();
-
-        // 5. Map Controller endpoints
         app.MapControllers();
     }
 }

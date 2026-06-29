@@ -8,14 +8,13 @@ public class Account
     public AccountStatus Status { get; private set; }
     public byte[] Version { get; private set; } = null!;
 
-    // Constructor for Entity Framework Core
     private Account() { }
 
     public Account(string id, Currency currency, decimal balance, AccountStatus status)
     {
         if (string.IsNullOrWhiteSpace(id))
             throw new ArgumentException("Account ID cannot be empty.", nameof(id));
-        
+
         ArgumentNullException.ThrowIfNull(currency);
 
         if (balance < 0)
