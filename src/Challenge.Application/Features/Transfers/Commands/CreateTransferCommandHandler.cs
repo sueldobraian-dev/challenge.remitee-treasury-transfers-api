@@ -25,40 +25,25 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
     public async Task<TransferResultResponse> HandleAsync(CreateTransferCommand command, CancellationToken cancellationToken)
     {
-
-        // 1. Idempotency Check
         var existingTransaction = await _transactionRepository.GetByOperationIdAsync(command.OperationId, cancellationToken);
         if (existingTransaction != null)
         {
             throw new IdempotencyException("Duplicate transfer");
         }
 
-        // 2. Load Accounts
-        var sourceAccount = await _accountRepository.GetByIdAsync(command.SourceAccountId, cancellationToken);
-        if (sourceAccount == null)
-        {
-            throw new AccountNotFoundException(command.SourceAccountId);
-        }
+        var sourceAccount = await _accountRepository.GetByIdAsync(command.SourceAccountId, cancellationToken) ?? throw new AccountNotFoundException(command.SourceAccountId);
+        var targetAccount = await _accountRepository.GetByIdAsync(command.TargetAccountId, cancellationToken) ?? throw new AccountNotFoundException(command.TargetAccountId);
 
-        var targetAccount = await _accountRepository.GetByIdAsync(command.TargetAccountId, cancellationToken);
-        if (targetAccount == null)
-        {
-            throw new AccountNotFoundException(command.TargetAccountId);
-        }
-
-        // 3. Validate request currency against source account currency
         if (!string.Equals(command.Currency, sourceAccount.CurrencyCode, StringComparison.OrdinalIgnoreCase))
         {
             throw new CurrencyMismatchException(command.Currency, sourceAccount.CurrencyCode);
         }
 
-        // 4. Account status validations (Frozen accounts cannot operate)
         if (sourceAccount.Status == AccountStatus.Frozen || targetAccount.Status == AccountStatus.Frozen)
         {
             throw new AccountIsFrozenException();
         }
 
-        // 5. Currency match and FX validation
         bool isCrossCurrency = !string.Equals(sourceAccount.CurrencyCode, targetAccount.CurrencyCode, StringComparison.OrdinalIgnoreCase);
         decimal finalFxRate = 1.0m;
 
@@ -78,7 +63,6 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
             }
         }
 
-        // 6. Balance and Money setup
         var sourceCurrency = Currency.FromCode(sourceAccount.CurrencyCode);
         var targetCurrency = Currency.FromCode(targetAccount.CurrencyCode);
 
@@ -89,15 +73,11 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
             throw new InsufficientFundsException();
         }
 
-        // Calculate credit money (applies Banker's Rounding implicitly inside Money.Multiply)
         var creditMoney = debitMoney.Multiply(finalFxRate, targetCurrency);
 
-
-        // 7. Execute Mutations
         sourceAccount.Debit(debitMoney);
         targetAccount.Credit(creditMoney);
 
-        // 8. Record Ledger Transaction
         var transactionId = Guid.NewGuid();
         var ledgerTransaction = new LedgerTransaction(
             transactionId,
@@ -114,11 +94,8 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         _accountRepository.Update(sourceAccount);
         _accountRepository.Update(targetAccount);
 
-        // 9. Persist Atomic Changes
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-
-        // 10. Return response payload
         var result = new TransferResultResponse(
             ledgerTransaction.Id,
             ledgerTransaction.OperationId,

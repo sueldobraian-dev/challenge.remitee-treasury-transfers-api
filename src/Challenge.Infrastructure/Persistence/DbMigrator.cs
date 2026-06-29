@@ -11,10 +11,8 @@ public static class DbMigrator
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ChallengeDbContext>();
 
-        // Apply migrations automatically
         await context.Database.MigrateAsync();
 
-        // Seed data if empty
         if (!await context.Accounts.AnyAsync())
         {
             var usd = Currency.FromCode("USD");

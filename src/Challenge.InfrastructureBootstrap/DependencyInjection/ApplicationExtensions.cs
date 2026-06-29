@@ -8,9 +8,7 @@ public static class ApplicationExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Registrar DispatchR escaneando el ensamblado de la aplicación
         services.AddDispatchR(typeof(CreateTransferCommandHandler).Assembly);
-
         return services;
     }
 }
