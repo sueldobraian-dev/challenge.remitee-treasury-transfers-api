@@ -2,6 +2,7 @@ using System.Reflection;
 using Challenge.Application.Common.DispatchR;
 using Challenge.InfrastructureBootstrap.Integrations.DispatchR;
 using Challenge.InfrastructureBootstrap.Integrations.DispatchR.Behaviors;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Challenge.InfrastructureBootstrap.Integrations.DispatchR;
@@ -13,6 +14,8 @@ public static class DispatchRExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<IDispatcher, Dispatcher>();
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddValidatorsFromAssembly(assembly);
 
         var handlerTypes = assembly.GetTypes()
             .Where(t => !t.IsAbstract && !t.IsInterface)

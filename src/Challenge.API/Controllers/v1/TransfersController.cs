@@ -1,5 +1,6 @@
 using Asp.Versioning;
 using Challenge.Application.Features.Transfers.Commands;
+using Challenge.Application.Features.Transfers.Commands.Responses;
 using Challenge.InfrastructureBootstrap.Integrations.DispatchR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,6 @@ public class TransfersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<TransferResultResponse> CreateAsync([FromBody] CreateTransferCommand command) 
+    public async Task<TransferResultResponse> CreateAsync([FromBody] CreateTransferCommand command)
         => await _dispatcher.SendAsync(command);
 }

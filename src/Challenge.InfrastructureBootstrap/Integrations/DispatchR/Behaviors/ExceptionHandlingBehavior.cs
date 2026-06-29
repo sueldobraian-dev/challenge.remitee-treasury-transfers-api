@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using Challenge.Application.Common.DispatchR;
 using Challenge.Domain.Exceptions;
@@ -24,6 +25,16 @@ public class ExceptionHandlingBehavior<TRequest, TResponse> : IPipelineBehavior<
         try
         {
             return await next();
+        }
+        catch (FluentValidation.ValidationException validationEx)
+        {
+            var firstError = validationEx.Errors.FirstOrDefault();
+            var errorCode = firstError?.ErrorCode ?? "VALIDATION_ERROR";
+            var message = firstError?.ErrorMessage ?? "Validation failed.";
+
+            _logger.LogWarning(validationEx, "Validation exception caught in DispatchR behavior: {ErrorCode} - {Message}", errorCode, message);
+            await WriteErrorResponseAsync(StatusCodes.Status400BadRequest, errorCode, message);
+            return default!;
         }
         catch (DomainException domainEx)
         {
