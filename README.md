@@ -4,7 +4,6 @@
 Esta aplicación resuelve la gestión de transferencias internas de fondos entre cuentas dentro de una tesorería centralizada. Garantiza que las transferencias de saldo sean **atómicas** (ocurren en su totalidad o no ocurre nada), **idempotentes** (se procesan de manera única basándose en una clave `operationId`) e implementa validaciones estrictas de saldo, estados de cuenta y tipos de cambio (FX) multimoneda.
 
 Para detalles avanzados sobre las reglas de negocio o las decisiones técnicas de diseño, consulta:
-* **[Especificación y Reglas de Negocio (docs/INSTRUCTIONS.md)](file:///d:/Repositories/challenges/challenge.remitee-treasury-transfers-api/docs/INSTRUCTIONS.md)**
 * **[Detalle de Diseño y Arquitectura (docs/ARCHITECTURE.md)](file:///d:/Repositories/challenges/challenge.remitee-treasury-transfers-api/docs/ARCHITECTURE.md)**
 
 ---
@@ -43,5 +42,5 @@ Este comando construirá la imagen del servidor web .NET, levantará la base de 
 
 ### 2. Probar la API de forma Interactiva (Scalar UI)
 Una vez que el contenedor esté corriendo:
-* Ingresa a: **[http://localhost:8080/scalar/v1](http://localhost:8080/scalar/v1)** para abrir la interfaz interactiva.
+* Ingresa a: **[https://localhost:7002/scalar/v1](http://localhost:7002/scalar/v1)** para abrir la interfaz interactiva.
 * Podrás ver la documentación OpenAPI, los esquemas detallados y probar el endpoint `POST /transfers` directamente.

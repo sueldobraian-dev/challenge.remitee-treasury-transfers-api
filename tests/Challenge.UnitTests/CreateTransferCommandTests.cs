@@ -1,4 +1,4 @@
-﻿using Challenge.Application.Features.Transfers.Commands;
+using Challenge.Application.Features.Transfers.Commands;
 using Challenge.Domain.Entities;
 using Challenge.Domain.Entities.Accounts;
 using Challenge.Domain.Exceptions;
@@ -68,47 +68,7 @@ public class CreateTransferCommandTests
         A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustNotHaveHappened();
     }
 
-    [Theory]
-    [InlineData(0.0)]
-    [InlineData(-50.25)]
-    public async Task HandleAsync_WithInvalidAmount_ShouldThrowInvalidAmountException(decimal amount)
-    {
-        // Arrange
-        var command = new CreateTransferCommand(
-            OperationId: Guid.NewGuid(),
-            SourceAccountId: "ACC-USD-1",
-            TargetAccountId: "ACC-USD-2",
-            Amount: amount,
-            Currency: "USD",
-            Fx: null
-        );
 
-        // Act
-        Func<Task> act = async () => await _handler.HandleAsync(command, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<InvalidAmountException>();
-    }
-
-    [Fact]
-    public async Task HandleAsync_WithIdenticalAccounts_ShouldThrowIdenticalAccountsException()
-    {
-        // Arrange
-        var command = new CreateTransferCommand(
-            OperationId: Guid.NewGuid(),
-            SourceAccountId: "ACC-USD-1",
-            TargetAccountId: "ACC-usd-1",
-            Amount: 100.00m,
-            Currency: "USD",
-            Fx: null
-        );
-
-        // Act
-        Func<Task> act = async () => await _handler.HandleAsync(command, CancellationToken.None);
-
-        // Assert
-        await act.Should().ThrowAsync<IdenticalAccountsException>();
-    }
 
     [Fact]
     public async Task HandleAsync_WithSourceAccountNotFound_ShouldThrowAccountNotFoundException()

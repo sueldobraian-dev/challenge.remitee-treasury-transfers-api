@@ -1,6 +1,6 @@
 using System;
 
-namespace Challenge.Application.Features.Transfers.Commands;
+namespace Challenge.Application.Features.Transfers.Commands.Responses;
 
 /// <summary>
 /// Response payload for a successful transfer.

@@ -1,12 +1,9 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Challenge.API.Controllers.v1;
 using Challenge.Application.Features.Transfers.Commands;
+using Challenge.Application.Features.Transfers.Commands.Responses;
 using Challenge.InfrastructureBootstrap.Integrations.DispatchR;
 using FakeItEasy;
 using FluentAssertions;
-using Xunit;
 
 namespace Challenge.UnitTests;
 

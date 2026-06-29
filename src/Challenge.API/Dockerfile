@@ -5,7 +5,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["src/Challenge.API/Challenge.API.csproj", "src/Challenge.API/"]
-COPY ["src/Challenge.Infrastructure.Bootstrap/Challenge.Infrastructure.Bootstrap.csproj", "src/Challenge.Infrastructure.Bootstrap/"]
+COPY ["src/Challenge.InfrastructureBootstrap/Challenge.InfrastructureBootstrap.csproj", "src/Challenge.Infrastructure.Bootstrap/"]
 COPY ["src/Challenge.Infrastructure/Challenge.Infrastructure.csproj", "src/Challenge.Infrastructure/"]
 COPY ["src/Challenge.Application/Challenge.Application.csproj", "src/Challenge.Application/"]
 COPY ["src/Challenge.Domain/Challenge.Domain.csproj", "src/Challenge.Domain/"]
