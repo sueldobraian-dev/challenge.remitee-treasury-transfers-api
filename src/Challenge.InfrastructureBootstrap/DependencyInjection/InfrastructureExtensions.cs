@@ -1,9 +1,11 @@
 using Challenge.Domain.Repositories;
 using Challenge.Infrastructure.Persistence;
 using Challenge.Infrastructure.Persistence.Repositories;
+using Challenge.InfrastructureBootstrap.Integrations.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Challenge.InfrastructureBootstrap.DependencyInjection;
 
@@ -22,7 +24,12 @@ public static class InfrastructureExtensions
 
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ITransactionRepository, TransactionRepository>();
-        services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<ChallengeDbContext>());
+        services.AddScoped<IUnitOfWork>(provider =>
+        {
+            var dbContext = provider.GetRequiredService<ChallengeDbContext>();
+            var logger = provider.GetRequiredService<ILogger<Challenge.InfrastructureBootstrap.Integrations.Persistence.RetryUnitOfWorkDecorator>>();
+            return new RetryUnitOfWorkDecorator(dbContext, logger);
+        });
 
         return services;
     }
