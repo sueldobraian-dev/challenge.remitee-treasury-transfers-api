@@ -1,4 +1,7 @@
+using Challenge.Application.Common.Events;
+using Challenge.Application.Common.Interfaces;
 using Challenge.Application.Features.Transfers.Commands;
+using Challenge.Application.Features.Transfers.Orchestration;
 using Challenge.Domain.Entities;
 using Challenge.Domain.Entities.Accounts;
 using Challenge.Domain.Exceptions;
@@ -13,6 +16,8 @@ public class CreateTransferCommandTests
     private readonly IAccountRepository _accountRepository;
     private readonly ITransactionRepository _transactionRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IKafkaService _kafkaService;
+    private readonly ITransferSagaOrchestrator _sagaOrchestrator;
     private readonly CreateTransferCommandHandler _handler;
 
     public CreateTransferCommandTests()
@@ -20,11 +25,19 @@ public class CreateTransferCommandTests
         _accountRepository = A.Fake<IAccountRepository>();
         _transactionRepository = A.Fake<ITransactionRepository>();
         _unitOfWork = A.Fake<IUnitOfWork>();
+        _kafkaService = A.Fake<IKafkaService>();
+
+        _sagaOrchestrator = new TransferSagaOrchestrator(
+            _accountRepository,
+            _unitOfWork,
+            _kafkaService
+        );
 
         _handler = new CreateTransferCommandHandler(
             _accountRepository,
             _transactionRepository,
-            _unitOfWork
+            _unitOfWork,
+            _sagaOrchestrator
         );
     }
 
@@ -306,7 +319,7 @@ public class CreateTransferCommandTests
         result.Should().NotBeNull();
         result.AmountDebited.Should().Be(100.00m);
         result.AmountCredited.Should().Be(100.00m);
-        
+
         sourceAcc.Balance.Should().Be(900.00m);
         targetAcc.Balance.Should().Be(600.00m);
 
@@ -314,6 +327,10 @@ public class CreateTransferCommandTests
         A.CallTo(() => _accountRepository.Update(sourceAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(targetAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly);
+
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-started", A<TransferStartedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("source-account-debited", A<SourceAccountDebitedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-completed", A<TransferCompletedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -354,6 +371,10 @@ public class CreateTransferCommandTests
         A.CallTo(() => _accountRepository.Update(sourceAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(targetAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly);
+
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-started", A<TransferStartedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("source-account-debited", A<SourceAccountDebitedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-completed", A<TransferCompletedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -394,6 +415,9 @@ public class CreateTransferCommandTests
         // Assert
         await act.Should().ThrowAsync<Exception>();
         A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly); // 1 (pending) + 2 (failed debit) + 3 (set to FAILED)
+
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-started", A<TransferStartedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-failed", A<TransferFailedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -433,10 +457,14 @@ public class CreateTransferCommandTests
 
         // Assert
         await act.Should().ThrowAsync<Exception>();
-        
+
         // Assert compensation occurred: source account balance should be refunded to original value
         sourceAcc.Balance.Should().Be(1000.00m); // 1000 - 100 (debit) + 100 (refund)
         A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(4, Times.Exactly); // 1 (pending) + 2 (debit) + 3 (failed credit) + 4 (compensation & set FAILED)
+
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-started", A<TransferStartedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("source-account-debited", A<SourceAccountDebitedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _kafkaService.PublishAsync("transfer-failed", A<TransferFailedEvent>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
     }
 }
 

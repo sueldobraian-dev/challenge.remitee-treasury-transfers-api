@@ -1,6 +1,9 @@
+using Challenge.Application.Common.Interfaces;
+using Challenge.Application.Features.Transfers.Orchestration;
 using Challenge.Domain.Repositories;
 using Challenge.Infrastructure.Persistence;
 using Challenge.Infrastructure.Persistence.Repositories;
+using Challenge.Infrastructure.Services;
 using Challenge.InfrastructureBootstrap.Integrations.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +33,9 @@ public static class InfrastructureExtensions
             var logger = provider.GetRequiredService<ILogger<Challenge.InfrastructureBootstrap.Integrations.Persistence.RetryUnitOfWorkDecorator>>();
             return new RetryUnitOfWorkDecorator(dbContext, logger);
         });
+
+        services.AddScoped<IKafkaService, KafkaService>();
+        services.AddScoped<ITransferSagaOrchestrator, TransferSagaOrchestrator>();
 
         return services;
     }
