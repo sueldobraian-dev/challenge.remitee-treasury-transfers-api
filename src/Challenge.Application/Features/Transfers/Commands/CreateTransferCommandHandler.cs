@@ -4,6 +4,7 @@ using Challenge.Domain.Entities;
 using Challenge.Domain.Entities.Accounts;
 using Challenge.Domain.Exceptions;
 using Challenge.Domain.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace Challenge.Application.Features.Transfers.Commands;
 
@@ -12,15 +13,18 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
     private readonly IAccountRepository _accountRepository;
     private readonly ITransactionRepository _transactionRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<CreateTransferCommandHandler> _logger;
 
     public CreateTransferCommandHandler(
         IAccountRepository accountRepository,
         ITransactionRepository transactionRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<CreateTransferCommandHandler> logger)
     {
         _accountRepository = accountRepository;
         _transactionRepository = transactionRepository;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     public async Task<TransferResultResponse> HandleAsync(CreateTransferCommand command, CancellationToken cancellationToken)
@@ -75,7 +79,6 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
         var creditMoney = debitMoney.Multiply(finalFxRate, targetCurrency);
 
-        // --- STEP 1: Start Saga (Insert pending transaction) ---
         var transactionId = Guid.NewGuid();
         var ledgerTransaction = new LedgerTransaction(
             transactionId,
@@ -91,7 +94,6 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         await _transactionRepository.AddAsync(ledgerTransaction, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // --- STEP 2: Debit Source Account ---
         try
         {
             sourceAccount.Debit(debitMoney);
@@ -105,7 +107,6 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
             throw;
         }
 
-        // --- STEP 3: Credit Target Account ---
         try
         {
             targetAccount.Credit(creditMoney);
@@ -116,15 +117,14 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         }
         catch (Exception)
         {
-            // Compensating action: Refund source account
             try
             {
                 sourceAccount.Credit(debitMoney);
                 _accountRepository.Update(sourceAccount);
             }
-            catch (Exception)
+            catch (Exception compEx)
             {
-                // Ignore or log compensation failure, prioritize setting transaction to FAILED
+                _logger.LogError(compEx, "Compensation failed: Could not refund source account {AccountId} for transaction {TransactionId}.", sourceAccount.Id, ledgerTransaction.Id);
             }
 
             ledgerTransaction.UpdateStatus("FAILED");

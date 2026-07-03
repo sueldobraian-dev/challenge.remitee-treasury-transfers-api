@@ -5,6 +5,7 @@ using Challenge.Domain.Exceptions;
 using Challenge.Domain.Repositories;
 using FakeItEasy;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 namespace Challenge.UnitTests;
 
@@ -13,6 +14,7 @@ public class CreateTransferCommandTests
     private readonly IAccountRepository _accountRepository;
     private readonly ITransactionRepository _transactionRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<CreateTransferCommandHandler> _logger;
     private readonly CreateTransferCommandHandler _handler;
 
     public CreateTransferCommandTests()
@@ -20,11 +22,13 @@ public class CreateTransferCommandTests
         _accountRepository = A.Fake<IAccountRepository>();
         _transactionRepository = A.Fake<ITransactionRepository>();
         _unitOfWork = A.Fake<IUnitOfWork>();
+        _logger = A.Fake<ILogger<CreateTransferCommandHandler>>();
 
         _handler = new CreateTransferCommandHandler(
             _accountRepository,
             _transactionRepository,
-            _unitOfWork
+            _unitOfWork,
+            _logger
         );
     }
 
