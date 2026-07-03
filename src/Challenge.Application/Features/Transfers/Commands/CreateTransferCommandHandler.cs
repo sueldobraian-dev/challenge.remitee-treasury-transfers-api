@@ -75,9 +75,7 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
 
         var creditMoney = debitMoney.Multiply(finalFxRate, targetCurrency);
 
-        sourceAccount.Debit(debitMoney);
-        targetAccount.Credit(creditMoney);
-
+        // --- STEP 1: Start Saga (Insert pending transaction) ---
         var transactionId = Guid.NewGuid();
         var ledgerTransaction = new LedgerTransaction(
             transactionId,
@@ -91,10 +89,48 @@ public class CreateTransferCommandHandler : IRequestHandler<CreateTransferComman
         );
 
         await _transactionRepository.AddAsync(ledgerTransaction, cancellationToken);
-        _accountRepository.Update(sourceAccount);
-        _accountRepository.Update(targetAccount);
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // --- STEP 2: Debit Source Account ---
+        try
+        {
+            sourceAccount.Debit(debitMoney);
+            _accountRepository.Update(sourceAccount);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            ledgerTransaction.UpdateStatus("FAILED");
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            throw;
+        }
+
+        // --- STEP 3: Credit Target Account ---
+        try
+        {
+            targetAccount.Credit(creditMoney);
+            _accountRepository.Update(targetAccount);
+
+            ledgerTransaction.UpdateStatus("COMPLETED");
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Compensating action: Refund source account
+            try
+            {
+                sourceAccount.Credit(debitMoney);
+                _accountRepository.Update(sourceAccount);
+            }
+            catch (Exception)
+            {
+                // Ignore or log compensation failure, prioritize setting transaction to FAILED
+            }
+
+            ledgerTransaction.UpdateStatus("FAILED");
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            throw;
+        }
 
         var result = new TransferResultResponse(
             ledgerTransaction.Id,

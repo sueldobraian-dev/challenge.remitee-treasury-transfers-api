@@ -313,7 +313,7 @@ public class CreateTransferCommandTests
         A.CallTo(() => _transactionRepository.AddAsync(A<LedgerTransaction>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(sourceAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(targetAcc)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly);
     }
 
     [Fact]
@@ -353,7 +353,90 @@ public class CreateTransferCommandTests
         A.CallTo(() => _transactionRepository.AddAsync(A<LedgerTransaction>._, A<CancellationToken>._)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(sourceAcc)).MustHaveHappenedOnceExactly();
         A.CallTo(() => _accountRepository.Update(targetAcc)).MustHaveHappenedOnceExactly();
-        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappenedOnceExactly();
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenDebitFails_ShouldMarkTransactionAsFailedAndRethrow()
+    {
+        // Arrange
+        var usd = Currency.FromCode("USD");
+        var sourceAcc = new Account("ACC-USD-1", usd, 1000.00m, AccountStatus.Active);
+        var targetAcc = new Account("ACC-USD-2", usd, 500.00m, AccountStatus.Active);
+
+        A.CallTo(() => _accountRepository.GetByIdAsync("ACC-USD-1", A<CancellationToken>._)).Returns(sourceAcc);
+        A.CallTo(() => _accountRepository.GetByIdAsync("ACC-USD-2", A<CancellationToken>._)).Returns(targetAcc);
+
+        // Make the 2nd SaveChangesAsync throw (which is during the Debit step)
+        var saveCallCount = 0;
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).ReturnsLazily(() =>
+        {
+            saveCallCount++;
+            if (saveCallCount == 2)
+            {
+                throw new Exception("Database write failed");
+            }
+            return 1;
+        });
+
+        var command = new CreateTransferCommand(
+            OperationId: Guid.NewGuid(),
+            SourceAccountId: "ACC-USD-1",
+            TargetAccountId: "ACC-USD-2",
+            Amount: 100.00m,
+            Currency: "USD",
+            Fx: null
+        );
+
+        // Act
+        Func<Task> act = async () => await _handler.HandleAsync(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<Exception>();
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(3, Times.Exactly); // 1 (pending) + 2 (failed debit) + 3 (set to FAILED)
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenCreditFails_ShouldCompensateByRefundAndMarkAsFailedAndRethrow()
+    {
+        // Arrange
+        var usd = Currency.FromCode("USD");
+        var sourceAcc = new Account("ACC-USD-1", usd, 1000.00m, AccountStatus.Active);
+        var targetAcc = new Account("ACC-USD-2", usd, 500.00m, AccountStatus.Active);
+
+        A.CallTo(() => _accountRepository.GetByIdAsync("ACC-USD-1", A<CancellationToken>._)).Returns(sourceAcc);
+        A.CallTo(() => _accountRepository.GetByIdAsync("ACC-USD-2", A<CancellationToken>._)).Returns(targetAcc);
+
+        // Make the 3rd SaveChangesAsync throw (which is during the Credit step)
+        var saveCallCount = 0;
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).ReturnsLazily(() =>
+        {
+            saveCallCount++;
+            if (saveCallCount == 3)
+            {
+                throw new Exception("Database write failed during credit");
+            }
+            return 1;
+        });
+
+        var command = new CreateTransferCommand(
+            OperationId: Guid.NewGuid(),
+            SourceAccountId: "ACC-USD-1",
+            TargetAccountId: "ACC-USD-2",
+            Amount: 100.00m,
+            Currency: "USD",
+            Fx: null
+        );
+
+        // Act
+        Func<Task> act = async () => await _handler.HandleAsync(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<Exception>();
+        
+        // Assert compensation occurred: source account balance should be refunded to original value
+        sourceAcc.Balance.Should().Be(1000.00m); // 1000 - 100 (debit) + 100 (refund)
+        A.CallTo(() => _unitOfWork.SaveChangesAsync(A<CancellationToken>._)).MustHaveHappened(4, Times.Exactly); // 1 (pending) + 2 (debit) + 3 (failed credit) + 4 (compensation & set FAILED)
     }
 }
 

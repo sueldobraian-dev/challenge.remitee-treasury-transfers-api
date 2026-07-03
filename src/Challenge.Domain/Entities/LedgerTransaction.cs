@@ -9,7 +9,7 @@ public class LedgerTransaction
     public decimal AmountDebited { get; private set; }
     public decimal AmountCredited { get; private set; }
     public decimal? FxRate { get; private set; }
-    public string Status { get; private set; } = "COMPLETED";
+    public string Status { get; private set; } = "PENDING";
     public DateTimeOffset CreatedAt { get; private set; }
 
     private LedgerTransaction() { }
@@ -52,7 +52,15 @@ public class LedgerTransaction
         AmountDebited = amountDebited;
         AmountCredited = amountCredited;
         FxRate = fxRate;
-        Status = "COMPLETED";
+        Status = "PENDING";
         CreatedAt = createdAt;
+    }
+
+    public void UpdateStatus(string status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            throw new ArgumentException("Status cannot be empty.", nameof(status));
+
+        Status = status.ToUpperInvariant();
     }
 }
