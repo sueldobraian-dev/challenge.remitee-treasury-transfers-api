@@ -1,0 +1,595 @@
+{
+	"info": {
+		"_postman_id": "7a35fe60-47b1-4d33-bcbe-fb4e311029c7",
+		"name": "Remitee Treasury Transfers API - E2E Tests",
+		"description": "Colección de pruebas de extremo a extremo (E2E) para la API de Transferencias de Tesorería. Cubre flujos exitosos, control de duplicados (idempotencia) y todos los flujos de error lógicos del dominio.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Transferencia Exitosa - Misma Moneda (USD -> USD)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Generar un nuevo UUID/Guid único para esta transacción",
+							"pm.collectionVariables.set(\"currentOperationId\", pm.variables.replaceIn('{{$guid}}'));"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is a valid JSON\", function () {",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"});",
+							"",
+							"pm.test(\"Transaction details are correct\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.id).to.be.a('string').and.not.empty;",
+							"    pm.expect(response.operationId).to.eql(pm.collectionVariables.get(\"currentOperationId\"));",
+							"    pm.expect(response.status).to.eql(\"COMPLETED\");",
+							"    pm.expect(response.sourceAccountId).to.eql(\"ACC-USD-1\");",
+							"    pm.expect(response.targetAccountId).to.eql(\"ACC-USD-2\");",
+							"    pm.expect(response.amountDebited).to.eql(10);",
+							"    pm.expect(response.amountCredited).to.eql(10);",
+							"    pm.expect(response.createdAt).to.exist;",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{currentOperationId}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-USD-2\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Idempotencia - Transferencia Duplicada (Conflict 409)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 409 Conflict\", function () {",
+							"    pm.response.to.have.status(409);",
+							"});",
+							"",
+							"pm.test(\"Response returns DUPLICATE_TRANSFER code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"DUPLICATE_TRANSFER\");",
+							"    pm.expect(response.message).to.include(\"Duplicate transfer\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{currentOperationId}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-USD-2\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Transferencia Exitosa - Multidivisa con FX (USD -> ARS)",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.collectionVariables.set(\"crossCurrencyOperationId\", pm.variables.replaceIn('{{$guid}}'));"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Amount is correctly multiplied by Fx rate\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.operationId).to.eql(pm.collectionVariables.get(\"crossCurrencyOperationId\"));",
+							"    pm.expect(response.amountDebited).to.eql(5.00);",
+							"    pm.expect(response.amountCredited).to.eql(5000.00); // 5.00 * 1000.00",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{crossCurrencyOperationId}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-ARS-1\",\n    \"amount\": 5.00,\n    \"currency\": \"USD\",\n    \"fx\": 1000.00\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Error - Fondos Insuficientes (422 Unprocessable)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							"pm.test(\"Response returns INSUFFICIENT_FUNDS code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"INSUFFICIENT_FUNDS\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-USD-2\",\n    \"targetAccountId\": \"ACC-USD-1\",\n    \"amount\": 999999.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Error - Cuenta Congelada (422 Unprocessable)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							"pm.test(\"Response returns ACCOUNT_IS_FROZEN code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"ACCOUNT_IS_FROZEN\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-FROZEN\",\n    \"targetAccountId\": \"ACC-USD-1\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6. Error - Cuentas Idénticas (400 Bad Request)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response returns IDENTICAL_ACCOUNTS code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"IDENTICAL_ACCOUNTS\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-USD-1\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7. Error - Moneda No Coincide con Origen (400 Bad Request)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response returns CURRENCY_MISMATCH code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"CURRENCY_MISMATCH\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-USD-2\",\n    \"amount\": 10.00,\n    \"currency\": \"ARS\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8. Error - FX Requerido en Multidivisa (400 Bad Request)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response returns FX_REQUIRED code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"FX_REQUIRED\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-ARS-1\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "9. Error - FX No Permitido en Misma Moneda (400 Bad Request)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Response returns FX_NOT_ALLOWED code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"FX_NOT_ALLOWED\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-USD-1\",\n    \"targetAccountId\": \"ACC-USD-2\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": 1.50\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "10. Error - Cuenta No Encontrada (404 Not Found)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404 Not Found\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Response returns ACCOUNT_NOT_FOUND code\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.code).to.eql(\"ACCOUNT_NOT_FOUND\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"operationId\": \"{{$guid}}\",\n    \"sourceAccountId\": \"ACC-NON-EXISTENT\",\n    \"targetAccountId\": \"ACC-USD-2\",\n    \"amount\": 10.00,\n    \"currency\": \"USD\",\n    \"fx\": null\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/transfers?api-version=1.0",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"transfers"
+					],
+					"query": [
+						{
+							"key": "api-version",
+							"value": "1.0"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "e2ba3473-b6d4-47cb-bcde-5dfd3e712a20",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "4020a173-9a3b-48cd-bf8d-b94fef4580bf",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5264",
+			"type": "string"
+		},
+		{
+			"key": "currentOperationId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "crossCurrencyOperationId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
